@@ -7,8 +7,13 @@ export default defineConfig({
 			include: ["src"],
 			reporter: ["html", "lcov"],
 		},
-		exclude: ["lib","node_modules"],
-		setupFiles: ["console-fail-test/setup"],
+		exclude: ["lib", "node_modules"],
+		environment: "node",
+		pool: "forks",
+		server: {
+			deps: {
+				inline: [/@lit-protocol/, /@wagmi/, /viem/, /@noble/, /@scure/],
+			},
+		},
 	},
 });
-	
