@@ -20,15 +20,35 @@ export const runExample = async ({
 		account: delegatorAccount,
 	});
 
-	await paymentManager.setRestriction({
+	const restrictionTx = await paymentManager.setRestriction({
 		totalMaxPrice: "1000000000000000000", // 1 ETH equivalent limit
 		requestsPerPeriod: "100", // max number of sponsored requests in a period
 		periodSeconds: "3600", // rolling window (1 hour in this example)
 	});
+	console.log("Set restriction tx:", restrictionTx.hash);
 
-	await paymentManager.delegatePaymentsBatch({
+	const delegateTx = await paymentManager.delegatePaymentsBatch({
 		userAddresses: [delegateeAccount.address],
 	});
+	console.log("Delegate payments tx:", delegateTx.hash);
+
+	// Wait for the delegation transaction to be confirmed
+	console.log("Waiting for delegation tx to be confirmed...");
+	if (delegateTx.receipt.status !== "success") {
+		throw new Error("Delegation transaction failed");
+	}
+	console.log("Delegation tx confirmed!");
+
+	// Verify delegation was set up correctly
+	const payers = await paymentManager.getPayers({
+		userAddress: delegateeAccount.address,
+	});
+	console.log("Payers for delegatee:", payers);
+
+	const users = await paymentManager.getUsers({
+		payerAddress: delegatorAccount.address,
+	});
+	console.log("Users delegated by delegator:", users);
 
 	const delegatorBalance = await paymentManager.getBalance({
 		userAddress: delegatorAccount.address,
