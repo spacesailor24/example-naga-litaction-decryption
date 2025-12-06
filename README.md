@@ -7,9 +7,13 @@ This example demonstrates how to use the Naga Lit Action to decrypt data where t
 1. `cp .env.example .env`
 2. Fill in the ENVs:
    - `DELEGATOR_ETH_PRIVATE_KEY`: The private key of the delegator account
+     - Needs to have a balance of test CAMP to send transactions
    - `DELEGATEE_ETH_PRIVATE_KEY`: The private key of the delegatee account
+     - Doesn't need to have a balance of test CAMP, used to sign the Lit Auth Sig for the decryption request
    - `ERC20_CHAIN_RPC_URL`: The RPC URL of the ERC20 chain
+     - Expected to be Camp testnet: https://rpc.basecamp.t.raas.gelato.cloud
    - `PINATA_JWT`: The JWT for Pinata
+     - Can be obtained from: https://app.pinata.cloud/developers/api-keys
 3. `pnpm i`
 
 ## Running the tests
