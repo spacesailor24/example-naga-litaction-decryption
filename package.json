@@ -54,6 +54,8 @@
 		"@lit-protocol/auth": "^8.1.2",
 		"@lit-protocol/lit-client": "^8.2.3",
 		"@lit-protocol/networks": "^8.3.2",
+		"@openzeppelin/contracts": "^5.0.0",
+		"solc": "^0.8.28",
 		"viem": "^2.41.2"
 	},
 	"pnpm": {

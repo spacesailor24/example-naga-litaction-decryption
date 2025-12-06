@@ -1,4 +1,4 @@
-import { nagaTest } from "@lit-protocol/networks";
+import { nagaDev } from "@lit-protocol/networks";
 import { createLitClient } from "@lit-protocol/lit-client";
 import { createAuthManager, storagePlugins } from "@lit-protocol/auth";
 import { Account } from "viem";
@@ -7,82 +7,40 @@ import { createAccBuilder } from "@lit-protocol/access-control-conditions";
 export const runExample = async ({
 	delegatorAccount,
 	delegateeAccount,
+	contractAddress,
+	requiredBalance,
+	ipfsCid,
 }: {
 	delegatorAccount: Account;
 	delegateeAccount: Account;
+	contractAddress: string;
+	requiredBalance: string;
+	ipfsCid: string;
 }) => {
 	const litClient = await createLitClient({
 		// @ts-expect-error - TODO: fix this
-		network: nagaTest,
+		network: nagaDev,
 	});
 
-	const paymentManager = await litClient.getPaymentManager({
-		account: delegatorAccount,
-	});
-
-	const restrictionTx = await paymentManager.setRestriction({
-		totalMaxPrice: "1000000000000000000", // 1 ETH equivalent limit
-		requestsPerPeriod: "100", // max number of sponsored requests in a period
-		periodSeconds: "3600", // rolling window (1 hour in this example)
-	});
-	console.log("Set restriction tx:", restrictionTx.hash);
-
-	const delegateTx = await paymentManager.delegatePaymentsBatch({
-		userAddresses: [delegateeAccount.address],
-	});
-	console.log("Delegate payments tx:", delegateTx.hash);
-
-	// Wait for the delegation transaction to be confirmed
-	console.log("Waiting for delegation tx to be confirmed...");
-	if (delegateTx.receipt.status !== "success") {
-		throw new Error("Delegation transaction failed");
-	}
-	console.log("Delegation tx confirmed!");
-
-	// Verify delegation was set up correctly
-	const payers = await paymentManager.getPayers({
-		userAddress: delegateeAccount.address,
-	});
-	console.log("Payers for delegatee:", payers);
-
-	const users = await paymentManager.getUsers({
-		payerAddress: delegatorAccount.address,
-	});
-	console.log("Users delegated by delegator:", users);
-
-	const delegatorBalance = await paymentManager.getBalance({
-		userAddress: delegatorAccount.address,
-	});
-	const delegateeBalance = await paymentManager.getBalance({
-		userAddress: delegateeAccount.address,
-	});
-
-	console.log("Balances:", { delegatorBalance, delegateeBalance });
-
-	// Build access control conditions
-	const builder = createAccBuilder();
-
-	const accs = builder
-		.requireWalletOwnership(delegateeAccount.address)
-		.on("ethereum")
-		.and()
-		.requireEthBalance("0", "=")
-		.on("yellowstone")
+	// Build access control conditions using the uploaded Lit Action
+	// Pass contract address and required balance to the Lit Action
+	const litActionGated = createAccBuilder()
+		.requireLitAction(ipfsCid, "go", [contractAddress, requiredBalance], "true")
 		.build();
 
 	// delegatorAccount encrypts data (no AuthContext needed)
 	const encryptedData = await litClient.encrypt({
-		dataToEncrypt: "Hello, my love! ❤️",
-		unifiedAccessControlConditions: accs,
+		dataToEncrypt:
+			"The answer to the ultimate question of life, the universe, and everything is 42.",
+		unifiedAccessControlConditions: litActionGated,
 		chain: "ethereum",
-		// metadata: { dataType: 'string' }, // auto-inferred
 	});
 	console.log("Encrypted data:", encryptedData);
 
 	const authManager = createAuthManager({
 		storage: storagePlugins.localStorageNode({
 			appName: "my-node-app",
-			networkName: nagaTest.getNetworkName(),
+			networkName: nagaDev.getNetworkName(),
 			storagePath: "./lit-auth-storage",
 		}),
 	});
@@ -108,7 +66,7 @@ export const runExample = async ({
 	// The delegatee should use the delegated payment capacity from delegatorAccount
 	const decryptedResponse = await litClient.decrypt({
 		data: encryptedData,
-		unifiedAccessControlConditions: accs,
+		unifiedAccessControlConditions: litActionGated,
 		authContext,
 		chain: "ethereum",
 	});
